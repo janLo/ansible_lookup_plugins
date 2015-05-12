@@ -8,6 +8,6 @@ This is a module to lookup a [pass](http://www.passwordstore.org/) password stor
 It takes a password path within the pass storage as argument:
 
     - name: test pass lookup
-      debug: msg={{ lookup('pass', 'pas/to/password') }}
+      debug: msg={{ lookup('pass', 'path/to/password') }}
 
 
