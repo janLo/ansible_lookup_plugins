@@ -52,7 +52,12 @@ class LookupModule(object):
             '''
             term = str(term)
 
-            keydir = os.path.join(self.basedir, self.CREDENIAL_DIR)
+            if "playbook_dir" not in inject:
+                raise AnsibleError("lookup_plugin.pass(%s) Cannot determine playbook dir")
+
+            keydir = os.path.join(inject['playbook_dir'], self.CREDENIAL_DIR)
+            if not os.path.exists(keydir):
+                raise AnsibleError("lookup_plugin.pass(%s) No 'credentials' dir in playbook dir %s" % (term, inject['playbook_dir']))
 
             env = dict(os.environ)
             env["PASSWORD_STORE_DIR"] = keydir
