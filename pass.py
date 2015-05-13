@@ -34,6 +34,19 @@ class LookupModule(object):
 
     def run(self, terms, inject=None, **kwargs):
 
+        candidates = []
+        basepath = utils.path_dwim(self.basedir, self.CREDENIAL_DIR)
+        if basepath:
+            candidates.append(basepath)
+
+        if "playbook_dir" in inject:
+            candidates.append(os.path.join(inject['playbook_dir'], self.CREDENIAL_DIR))
+
+        keydir = None
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                keydir = candidate
+                break
         terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject) 
 
         if isinstance(terms, basestring):
@@ -52,12 +65,8 @@ class LookupModule(object):
             '''
             term = str(term)
 
-            if "playbook_dir" not in inject:
-                raise AnsibleError("lookup_plugin.pass(%s) Cannot determine playbook dir")
-
-            keydir = os.path.join(inject['playbook_dir'], self.CREDENIAL_DIR)
-            if not os.path.exists(keydir):
-                raise AnsibleError("lookup_plugin.pass(%s) No 'credentials' dir in playbook dir %s" % (term, inject['playbook_dir']))
+            if keydir is None:
+                raise AnsibleError("lookup_plugin.pass(%s) No 'credentials' dir found in playbook dir. candidates: %s" % (term, candidates))
 
             env = dict(os.environ)
             env["PASSWORD_STORE_DIR"] = keydir
