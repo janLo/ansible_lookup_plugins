@@ -19,27 +19,31 @@ from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
 import os
+import six
 import subprocess
 
 from ansible import utils, errors
+from ansible.plugins.lookup import LookupBase
 from ansible.errors import AnsibleError
 
-class LookupModule(object):
+class LookupModule(LookupBase):
 
     COMMAND="pass"
     CREDENIAL_DIR="credentials"
 
-    def __init__(self, basedir=None, **kwargs):
-        self.basedir = basedir
+#def __init__(self, basedir=None, **kwargs):
+#        super(LookupModule, self).__init__()
+#        self.basedir = basedir
 
-    def run(self, terms, inject=None, **kwargs):
+    def run(self, terms, inject=None, variables=None, **kwargs):
 
         candidates = []
-        basepath = utils.path_dwim(self.basedir, self.CREDENIAL_DIR)
+        basedir = self.get_basedir(variables)
+        basepath = self._loader.path_dwim_relative(basedir, "", self.CREDENIAL_DIR)
         if basepath:
             candidates.append(basepath)
 
-        if "playbook_dir" in inject:
+        if inject is not None and "playbook_dir" in inject:
             candidates.append(os.path.join(inject['playbook_dir'], self.CREDENIAL_DIR))
 
         keydir = None
@@ -47,9 +51,10 @@ class LookupModule(object):
             if os.path.exists(candidate):
                 keydir = candidate
                 break
-        terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject) 
+        if 'listify_lookup_plugin_terms' in globals():
+            terms = utils.listify_lookup_plugin_terms(terms, self.basedir, inject) 
 
-        if isinstance(terms, basestring):
+        if isinstance(terms, six.string_types):
             terms = [ terms ] 
 
         ret = []
@@ -74,7 +79,7 @@ class LookupModule(object):
             command = "%s %s" % (self.COMMAND, term)
 
             p = subprocess.Popen(command,
-                    cwd=self.basedir,
+                    cwd=basedir,
                     shell=True,
                     stdin=subprocess.PIPE,
                     stdout=subprocess.PIPE,
