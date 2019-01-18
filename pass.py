@@ -88,7 +88,7 @@ class LookupModule(LookupBase):
 
             (stdout, stderr) = p.communicate()
             if p.returncode == 0:
-                ret.append(stdout.decode("utf-8").rstrip())
+                ret.append(stdout.decode("utf-8").splitlines()[0].rstrip())
             else:
                 err = stderr.decode("utf-8").rstrip()
                 raise AnsibleError("lookup_plugin.pass(%s) returned %d: %s" % (term, p.returncode, err))
