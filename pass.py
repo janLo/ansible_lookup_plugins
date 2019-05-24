@@ -26,6 +26,33 @@ from ansible import utils, errors
 from ansible.plugins.lookup import LookupBase
 from ansible.errors import AnsibleError
 
+
+_cache = {}
+
+
+def _run_cmd(command, basedir, env):
+    key = hash(command + basedir + str(env))
+    if key in _cache:
+        return _cache[key]
+
+    p = subprocess.Popen(command,
+            cwd=basedir,
+            shell=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env)
+
+    (stdout, stderr) = p.communicate()
+    if p.returncode == 0:
+        data = stdout.decode("utf-8").splitlines()[0].rstrip()
+        _cache[key] = data
+        return data
+    else:
+        err = stderr.decode("utf-8").rstrip()
+        raise AnsibleError("lookup_plugin.pass(%s) returned %d: %s" % (term, p.returncode, err))
+
+
 class LookupModule(LookupBase):
 
     COMMAND="pass"
@@ -78,18 +105,5 @@ class LookupModule(LookupBase):
 
             command = "%s %s" % (self.COMMAND, term)
 
-            p = subprocess.Popen(command,
-                    cwd=basedir,
-                    shell=True,
-                    stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    env=env)
-
-            (stdout, stderr) = p.communicate()
-            if p.returncode == 0:
-                ret.append(stdout.decode("utf-8").splitlines()[0].rstrip())
-            else:
-                err = stderr.decode("utf-8").rstrip()
-                raise AnsibleError("lookup_plugin.pass(%s) returned %d: %s" % (term, p.returncode, err))
+            ret.append(_run_cmd(command, basedir, env))
         return ret
